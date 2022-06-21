@@ -2,14 +2,9 @@
 #include <iostream>
 using namespace std;
 
-// Veículo: código, marca, modelo, placa, categoria, situação, Quantidade de locações
-// Cliente: Nome, CPF, telefone
-// Locação: Data, CPF, código, data entrega, valor, valor pago
-// Verificar se é um carro por locação
-
 typedef struct {
     string codigo, marca, modelo, placa, situacao;
-    int qntd_locacoes = 0, categoria;
+    int quantidade = 0, categoria;
 } Veiculo;
 
 typedef struct {
@@ -17,38 +12,45 @@ typedef struct {
 } Cliente;
 
 typedef struct {
-    string data, cpf, cod, data_entrega;
-    float valor, valor_pago;
+    string cpf, data, dataE, codigo;
+    float valor, valorP;
 } Locacao;
 
 int funcao_opcao();
 int veiculo_ou_cliente();
 bool verificar_veiculo(string);
+void inserir_veiculo(string);
 bool verificar_cliente(string);
-void inserir_veiculo();
-void inserir_cliente();
+void inserir_cliente(string);
 
 int main() {
-    int opcao, escolha;
     bool existente;
-    string placa, nomeCliente;
+    int opcao, opcao2;
+    string placa, nome;
 
     do {
         opcao = funcao_opcao();
 
         switch (opcao) {
         case 1:
-            escolha = veiculo_ou_cliente();
-            if (escolha == 1) {
-                cout << "Digite a placa do veiculo que deseja: ";
+            opcao2 = veiculo_ou_cliente();
+            cin.ignore();
+            if (opcao2 == 1) {
+                cout << "Digite a placa do veiculo que deseja inserir: ";
                 getline(cin, placa);
                 existente = verificar_veiculo(placa);
-                // Incluir veiculo
+                if (existente == false)
+                    inserir_veiculo(placa);
+                else
+                    cout << "veiculo ja cadastrado!" << endl;
             } else {
-                cout << "Digite o nome do cliente que deseja: ";
-                getline(cin, nomeCliente);
-                existente = verificar_cliente(nomeCliente);
-                // Incluir um veiculo ou cliente
+                cout << "Digite o nome do cliente que deseja inserir: ";
+                getline(cin, nome);
+                existente = verificar_cliente(nome);
+                if (existente == false)
+                    inserir_cliente(nome);
+                else
+                    cout << "Cliente ja cadastrado!" << endl;
             }
             break;
 
@@ -77,6 +79,7 @@ int main() {
             cout << "Saindo..." << endl;
             break;
         }
+
     } while (opcao != 6);
 
     return 0;
@@ -106,10 +109,19 @@ int veiculo_ou_cliente() {
 }
 
 bool verificar_veiculo(string placa) {
+    ifstream arq("FROTA.DAD", ios::in | ios::binary);
+    Veiculo carro;
 
+    while (arq.read((char *)(&carro), sizeof(Veiculo))) {
+        if (carro.placa == placa)
+            arq.close();
+        return true;
+    }
+    arq.close();
+    return false;
 }
 
-void inserir_veiculo() {
+void inserir_veiculo(string placa) {
     ofstream gravar;
     Veiculo carro;
 
@@ -121,11 +133,9 @@ void inserir_veiculo() {
     getline(cin, carro.marca);
     cout << "Informe o modelo do veiculo: ";
     getline(cin, carro.modelo);
-    cout << "Informe a placa do veiculo: ";
-    getline(cin, carro.placa);
-    cin.ignore();
+    carro.placa = placa;
     do {
-        cout << "Informe a categoria do veiculo: ";
+        cout << "Informe a categoria do veiculo: " << endl;
         cout << "1. Basico" << endl;
         cout << "2. Intermediario" << endl;
         cout << "3. Super" << endl;
@@ -134,17 +144,30 @@ void inserir_veiculo() {
     carro.situacao = "disponivel";
 
     gravar.write((char *)(&carro), sizeof(Veiculo));
-
     gravar.close();
 }
 
-void inserir_cliente() {
+bool verificar_cliente(string nome) {
+    ifstream arq("cliente.txt");
+    string linha;
+
+    while (getline(arq, linha)) {
+        cout << linha << endl;
+        if (linha == nome) {
+            arq.close();
+            return true;
+        }
+    }
+
+    arq.close();
+    return false;
+}
+
+void inserir_cliente(string nome) {
     Cliente pessoa;
     ofstream gravar("CLIENTE.TXT");
 
-    cout << "Informe o nome do cliente: ";
-    getline(cin, pessoa.nome);
-    gravar << pessoa.nome << endl;
+    gravar << nome << endl;
     cout << "Informe o CPF do cliente: ";
     getline(cin, pessoa.cpf);
     gravar << pessoa.cpf << endl;
