@@ -20,8 +20,10 @@ int funcao_opcao();
 int veiculo_ou_cliente();
 bool verificar_veiculo(string);
 void inserir_veiculo(string);
+void excluir_veiculo(string);
 bool verificar_cliente(string);
 void inserir_cliente(string);
+void excluir_cliente(string);
 
 int main() {
     bool existente;
@@ -42,7 +44,7 @@ int main() {
                 if (existente == false)
                     inserir_veiculo(placa);
                 else
-                    cout << "veiculo ja cadastrado!" << endl;
+                    cout << "Veiculo ja cadastrado!" << endl;
             } else {
                 cout << "Digite o nome do cliente que deseja inserir: ";
                 getline(cin, nome);
@@ -55,8 +57,25 @@ int main() {
             break;
 
         case 2:
-            // Verificar se veículo existe (placa)
-            // Verificar se cliente existe (nome)
+            opcao2 = veiculo_ou_cliente();
+            cin.ignore();
+            if (opcao2 == 1) {
+                /* cout << "Digite a placa do veiculo que deseja excluir: ";
+                getline(cin, placa);
+                existente = verificar_veiculo(placa);
+                if (existente == false)
+                    excluir_veiculo(placa);
+                else
+                    cout << "Veiculo ja inexistente!" << endl; */
+            } else {
+                cout << "Digite o nome do cliente que deseja excluir: ";
+                getline(cin, nome);
+                existente = verificar_cliente(nome);
+                if (existente == true)
+                    excluir_cliente(nome);
+                else
+                    cout << "Cliente inexistente!" << endl;
+            }
             // Excluir veiculo ou cliente
             break;
 
@@ -102,20 +121,24 @@ int funcao_opcao() {
 
 int veiculo_ou_cliente() {
     int escolher;
-    cout << "1 - Incluir veiculo" << endl;
-    cout << "2 - Incluir cliente" << endl;
+    cout << "1 - Veiculo" << endl;
+    cout << "2 - Cliente" << endl;
     cin >> escolher;
     return escolher;
 }
 
+// Erro aqui - Se existe ele insere mesmo assim
 bool verificar_veiculo(string placa) {
     ifstream arq("FROTA.DAD", ios::in | ios::binary);
     Veiculo carro;
 
-    while (arq.read((char *)(&carro), sizeof(Veiculo))) {
-        if (carro.placa == placa)
+    arq.read((char *)(&carro), sizeof(Veiculo));
+    arq.seekg(0, ios::beg);
+    while (!arq.eof()) {
+        if (carro.placa == placa) {
             arq.close();
-        return true;
+            return true;
+        }
     }
     arq.close();
     return false;
@@ -152,7 +175,6 @@ bool verificar_cliente(string nome) {
     string linha;
 
     while (getline(arq, linha)) {
-        cout << linha << endl;
         if (linha == nome) {
             arq.close();
             return true;
@@ -165,7 +187,7 @@ bool verificar_cliente(string nome) {
 
 void inserir_cliente(string nome) {
     Cliente pessoa;
-    ofstream gravar("CLIENTE.TXT");
+    ofstream gravar("CLIENTE.TXT", ios::app);
 
     gravar << nome << endl;
     cout << "Informe o CPF do cliente: ";
@@ -176,4 +198,28 @@ void inserir_cliente(string nome) {
     gravar << pessoa.telefone << endl;
 
     gravar.close();
+}
+
+void excluir_cliente(string nome) {
+    fstream arq("CLIENTE.TXT");
+    char ch;
+    string palavra = "";
+    long int pos = arq.tellg();
+    cout << pos << endl;
+
+    while (arq.get(ch)) {
+        if (ch == '\n') {
+            long int pos = arq.tellg();
+            cout << pos << endl;
+            if (palavra == nome) {
+                long int pos = arq.tellg();
+                cout << pos  << "AQUI" << endl;
+                arq << ch;
+            }
+
+            palavra = "";
+        } else
+            palavra = palavra + ch;
+    }
+    arq.close();
 }
