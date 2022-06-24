@@ -18,8 +18,7 @@ typedef struct {
 
 int funcao_opcao();
 int veiculo_ou_cliente();
-bool verificar_veiculo(string);
-void inserir_veiculo(string);
+void incluiV();
 void excluir_veiculo(string);
 bool verificar_cliente(string);
 void inserir_cliente(string);
@@ -37,15 +36,9 @@ int main() {
         case 1:
             opcao2 = veiculo_ou_cliente();
             cin.ignore();
-            if (opcao2 == 1) {
-                cout << "Digite a placa do veiculo que deseja inserir: ";
-                getline(cin, placa);
-                existente = verificar_veiculo(placa);
-                if (existente == false)
-                    inserir_veiculo(placa);
-                else
-                    cout << "Veiculo ja cadastrado!" << endl;
-            } else {
+            if (opcao2 == 1)
+                incluiV();
+            else {
                 cout << "Digite o nome do cliente que deseja inserir: ";
                 getline(cin, nome);
                 existente = verificar_cliente(nome);
@@ -67,15 +60,15 @@ int main() {
                     excluir_veiculo(placa);
                 else
                     cout << "Veiculo ja inexistente!" << endl; */
-            } else {
+            } /* else {
                 cout << "Digite o nome do cliente que deseja excluir: ";
                 getline(cin, nome);
                 existente = verificar_cliente(nome);
                 if (existente == true)
                     excluir_cliente(nome);
                 else
-                    cout << "Cliente inexistente!" << endl;
-            }
+                    cout << "Cliente inexistente!" << endl; */
+            //}
             // Excluir veiculo ou cliente
             break;
 
@@ -127,49 +120,6 @@ int veiculo_ou_cliente() {
     return escolher;
 }
 
-// Erro aqui - Se existe ele insere mesmo assim
-bool verificar_veiculo(string placa) {
-    ifstream arq("FROTA.DAD", ios::in | ios::binary);
-    Veiculo carro;
-
-    arq.read((char *)(&carro), sizeof(Veiculo));
-    arq.seekg(0, ios::beg);
-    while (!arq.eof()) {
-        if (carro.placa == placa) {
-            arq.close();
-            return true;
-        }
-    }
-    arq.close();
-    return false;
-}
-
-void inserir_veiculo(string placa) {
-    ofstream gravar;
-    Veiculo carro;
-
-    gravar.open("FROTA.DAT", ios::out | ios::binary);
-
-    cout << "Informe o codigo do veiculo: ";
-    getline(cin, carro.codigo);
-    cout << "Informe a marca do veiculo: ";
-    getline(cin, carro.marca);
-    cout << "Informe o modelo do veiculo: ";
-    getline(cin, carro.modelo);
-    carro.placa = placa;
-    do {
-        cout << "Informe a categoria do veiculo: " << endl;
-        cout << "1. Basico" << endl;
-        cout << "2. Intermediario" << endl;
-        cout << "3. Super" << endl;
-        cin >> carro.categoria;
-    } while (carro.categoria < 1 or carro.categoria > 3);
-    carro.situacao = "disponivel";
-
-    gravar.write((char *)(&carro), sizeof(Veiculo));
-    gravar.close();
-}
-
 bool verificar_cliente(string nome) {
     ifstream arq("cliente.txt");
     string linha;
@@ -200,26 +150,52 @@ void inserir_cliente(string nome) {
     gravar.close();
 }
 
-void excluir_cliente(string nome) {
+/* void excluir_cliente(string nome) {
     fstream arq("CLIENTE.TXT");
-    char ch;
-    string palavra = "";
-    long int pos = arq.tellg();
-    cout << pos << endl;
+    string linha;
 
-    while (arq.get(ch)) {
-        if (ch == '\n') {
-            long int pos = arq.tellg();
-            cout << pos << endl;
-            if (palavra == nome) {
-                long int pos = arq.tellg();
-                cout << pos  << "AQUI" << endl;
-                arq << ch;
-            }
-
-            palavra = "";
-        } else
-            palavra = palavra + ch;
+    while (getline(arq, linha)) {
+        if (linha == nome) {
+            arq.seekp(arq.tellp() - linha.size());
+            arq << '\n';
+            break;
+        }
     }
+    arq.close();
+} */
+
+void incluiV() { // Quebrar para fazer um verificarVeiculo separado
+    int n;
+    Veiculo carro;
+    fstream arq("FROTA.DAD", ios::binary | ios::in | ios::out | ios::app);
+    string procurar;
+
+    cout << "Informe a placa do veiculo: ";
+    getline(cin, procurar);
+
+    arq.seekg(0, ios::end);
+    n = arq.tellg() / sizeof(Veiculo);
+    arq.seekg(0, ios::beg);
+
+    for (int i = 0; i < n; i++) {
+        arq.read((char *)&carro, sizeof(Veiculo));
+        if (carro.placa == procurar) {
+            cout << "Veiculo ja cadastrado!" << endl;
+            system("pause");
+            return;
+        }
+    }
+    carro.placa = procurar;
+    cout << "Informe a marca: ";
+    getline(cin, carro.marca);
+    cout << "Informe o modelo: ";
+    getline(cin, carro.modelo);
+    cout << "Informe a categoria (1 - Basico / 2 - Intermediario / 3 - Super): ";
+    cin >> carro.categoria;
+    cout << "Informe a situacao ((L) Locado / (D) Disponivel): ";
+    cin >> carro.situacao;
+    carro.quantidade = 0;
+
+    arq.write((char *)(&carro), sizeof(Veiculo));
     arq.close();
 }
