@@ -7,7 +7,7 @@ typedef struct {
 } Cliente;
 
 typedef struct {
-    string marca, modelo;
+    char marca[10] = {}, modelo[10] = {};
     char situacao;
     int quantidade = 0, categoria = 0, codigo = 0, placa = 0;
 } Veiculo;
@@ -36,7 +36,7 @@ void relatorioB();
 void relatorioC();
 void relatorioD();
 
-// TODO: Relatiors, case 4, ordenação, corrigir bugs, limpar código...
+// TODO: Relatorios, case 4, ordenação, corrigir bugs, limpar código...
 
 int main() {
     bool existente, existente2 = false;
@@ -203,9 +203,16 @@ void incluir_veiculo() { //! Talvez esteja errado
     cin >> carro.categoria;
     cin.ignore();
     cout << "Informe a marca: ";
-    getline(cin, carro.marca);
+    string aux;
+    getline(cin, aux);
+    for (int i = 0; i < aux.size(); i++)
+        carro.marca[i] = aux[i];
+
     cout << "Informe o modelo: ";
-    getline(cin, carro.modelo);
+    getline(cin, aux);
+    for (int i = 0; i < aux.size(); i++)
+        carro.modelo[i] = aux[i];
+
     carro.situacao = 'D';
 
     arq.write((char *)(&carro), sizeof(Veiculo));
@@ -380,14 +387,20 @@ void relatorioA() // VEICULOS
     Veiculo carro;
     string teste;
 
+    arq.seekg(0, ios::end);
+    int n = arq.tellg() / sizeof(Veiculo);
     arq.seekg(0, ios::beg);
+
     cout << "Mostrando veiculos... " << endl;
     cout << "---------------------------------" << endl;
-    while (!arq.eof()) {
+    for (int i = 0; i < n; i++) {
         arq.read((char *)(&carro), sizeof(Veiculo));
 
-        if (carro.placa == 'D')
-            teste = "disponivel";
+        if (carro.situacao == 'D')
+            teste = "Disponivel";
+        else
+            teste = "Locado";
+
         cout << "Codigo: " << carro.codigo << endl;
         cout << "Marca: " << carro.marca << endl;
         cout << "Modelo: " << carro.modelo << endl;
