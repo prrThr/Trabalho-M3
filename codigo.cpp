@@ -1,3 +1,4 @@
+#include <ctime>
 #include <fstream>
 #include <iostream>
 using namespace std;
@@ -17,7 +18,7 @@ typedef struct {
     float valor = 0, valorP = 0;
 } Locacao;
 
-int funcao_opcao();
+int funcao_opcao(int, int, int);
 int veiculo_ou_cliente();
 
 void incluir_veiculo(); // Verifica junto
@@ -33,18 +34,21 @@ void locacao(int, string, int);
 void relatorioA();
 void relatorioB();
 void relatorioC();
-void relatorioD();
+void relatorioD(int, int);
 
 // TODO: Relatorios, case 4, ordenação, corrigir bugs, limpar código...
 
 int main() {
-    bool existente, existente2 = false;
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    int dia = ltm->tm_mday, mes = 1 + ltm->tm_mon, ano = 1900 + ltm->tm_year;
     int opcao, opcao2, opcao3, placa;
+    bool existente, existente2 = false;
     string nome;
     Veiculo carro;
 
     do {
-        opcao = funcao_opcao();
+        opcao = funcao_opcao(dia, mes, ano);
 
         switch (opcao) {
         case 1:
@@ -135,7 +139,7 @@ int main() {
                 relatorioC();
                 break;
             case 4:
-                relatorioD();
+                relatorioD(dia, mes);
                 break;
             }
             break;
@@ -150,9 +154,10 @@ int main() {
     return 0;
 }
 
-int funcao_opcao() {
+int funcao_opcao(int dia, int mes, int ano) {
     int escolha;
     do {
+        cout << "Data:" << dia << "/" << mes << "/" << ano << endl;
         cout << "Digite a opcao desejada: " << endl;
         cout << "1 - Incluir um veiculo ou cliente" << endl;
         cout << "2 - Excluir veiculo ou cliente" << endl;
@@ -461,5 +466,32 @@ void relatorioC() // LOCACOES
 
     arq.close();
 }
-void relatorioD() // DIA DE HOJE
-{}
+
+void relatorioD(int dia, int mes) // DIA DE HOJEdia, mes
+{
+    ifstream arq("LOCACOES.DAD", ios::binary);
+    Locacao carro;
+
+    arq.seekg(0, ios::end);
+    int n = arq.tellg() / sizeof(Locacao);
+    arq.seekg(0, ios::beg);
+
+    cout << "Mostrando veiculos para serem devolvidos hoje..." << endl;
+    cout << "Data de Hoje: " << dia << "/" << mes << endl;
+    cout << "---------------------------------" << endl;
+
+    for (int i = 0; i < n; i++) {
+        arq.read((char *)(&carro), sizeof(Locacao));
+
+        if (carro.diaE == dia and carro.mesE == mes) {
+            cout << "Codigo: " << carro.codigo << endl;
+            cout << "CPF: " << carro.cpf << endl;
+            cout << "Valor: " << carro.valor << endl;
+            cout << "Valor pago: " << carro.valorP << endl;
+            cout << "Data de locacao: " << carro.dia << "/" << carro.mes << endl;
+            cout << "Data de devolucao: " << carro.diaE << "/" << carro.mesE << endl;
+            cout << "---------------------------------" << endl;
+        }
+    }
+    arq.close();
+}
