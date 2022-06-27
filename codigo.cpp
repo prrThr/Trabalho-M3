@@ -5,17 +5,17 @@
 using namespace std;
 
 typedef struct {
-    string nome, telefone;
-    char cpf[12];
+    string nome, telefone, cpf;
 } Cliente;
 
 typedef struct {
-    char marca[10], modelo[10], situacao;
-    int quantidade, categoria, codigo, placa;
+    string marca, modelo, placa;
+    char situacao;
+    int quantidade, categoria, codigo;
 } Veiculo;
 
 typedef struct {
-    char cpf[12];
+    string cpf;
     int dia, mes, diaE, mesE, codigo;
     float valor, valorP;
 } Locacao;
@@ -23,10 +23,10 @@ typedef struct {
 int funcao_opcao(int, int, int);
 int veiculo_ou_cliente();
 
-void incluir_veiculo(); // Verifica junto
-void excluir_veiculo();
+void inserir_veiculo(string);
+void excluir_veiculo(string);
 
-bool verificar_cliente(string);
+bool verificar_cliente(string, string);
 void inserir_cliente(string);
 void excluir_cliente(string);
 
@@ -39,7 +39,9 @@ void relatorioB();
 void relatorioC();
 void relatorioD(int, int);
 
-// TODO: Relatorios C e D, case 3 e 4, ordenação, corrigir bugs e limpar código (zerar variaveis, cin.ignore, do-while's, etc...)
+
+//TODO: Mudar nome da string nome, verificar_cliente(),
+//TODO: Relatorios C e D, case 3 e 4, ordenação, corrigir bugs e limpar código (zerar variaveis, cin.ignore, do-while's, etc...)
 
 int main() {
     time_t now = time(0);
@@ -47,8 +49,7 @@ int main() {
     int dia = ltm->tm_mday, mes = 1 + ltm->tm_mon, ano = 1900 + ltm->tm_year;
     int opcao, opcao2, opcao3, placa;
     bool existente, existente2 = false;
-    string nome, aux;
-    //Veiculo carro;
+    string nome, aux, escolha;
 
     do {
         opcao = funcao_opcao(dia, mes, ano);
@@ -57,12 +58,24 @@ int main() {
             system("cls");
             opcao2 = veiculo_ou_cliente(); // TODO: fazer do-while quando terminar
             cin.ignore();
-            if (opcao2 == 1)
-                incluir_veiculo();
-            else {
+
+            if (opcao2 == 1) {
+                escolha = "frota.txt";
+                cout << "Digite a placa: ";
+                getline(cin, nome);
+                existente = verificar_cliente(nome, escolha);
+                if (!existente) {
+                    inserir_veiculo(nome);
+                    cout << "Veiculo inserido com sucesso!" << endl;
+                } else
+                    cout << "Veiculo ja cadastrado!" << endl;
+
+
+            } else {
+                escolha = "cliente.txt";
                 cout << "Digite o nome do cliente que deseja inserir: ";
                 getline(cin, nome);
-                existente = verificar_cliente(nome);
+                existente = verificar_cliente(nome, escolha);
                 if (!existente) {
                     inserir_cliente(nome);
                     cout << "Cliente inserido com sucesso!" << endl;
@@ -75,13 +88,21 @@ int main() {
             system("cls");
             opcao2 = veiculo_ou_cliente();
             cin.ignore();
+
             if (opcao2 == 1) {
-                excluir_veiculo();
-                cout << "Veiculo excluido!" << endl;
+                cout << "Digite a placa do veiculo que deseja excluir: ";
+                getline(cin, nome);
+                existente = verificar_cliente(nome, escolha);
+                if (existente) {
+                    excluir_veiculo(nome);
+                    cout << "Veiculo excluido!" << endl;
+                } else
+                    cout << "Veiculo inexistente!" << endl;
+
             } else {
                 cout << "Digite o nome do cliente que deseja excluir: ";
                 getline(cin, nome);
-                existente = verificar_cliente(nome);
+                existente = verificar_cliente(nome, escolha);
                 if (existente) {
                     excluir_cliente(nome);
                     cout << "Cliente excluido!" << endl;
@@ -90,7 +111,7 @@ int main() {
             }
             break;
 
-        case 3:
+        /*case 3:
             system("cls");
             cout << "Digite o nome do cliente: ";
             cin.ignore();
@@ -126,7 +147,7 @@ int main() {
                 cout << "Devolucao realizada!" << endl;
             } else
                 cout << "Cliente nao cadastrado!" << endl;
-            break;
+            break;*/
 
         case 5:
             do {
@@ -188,82 +209,65 @@ int veiculo_ou_cliente() {
     return escolher;
 }
 
-void incluir_veiculo() { //! Talvez esteja errado
-    int n, i, procurar;
+void inserir_veiculo(string placa) { //! Talvez esteja errado
     Veiculo carro;
-    fstream arq("FROTA.DAD", ios::binary | ios::in | ios::out | ios::app);
-    string aux;
+    ofstream arq("FROTA.TXT", ios::app);
+    string linha;
 
-    cout << "Informe a placa do veiculo: ";
-    cin >> procurar;
+    carro.placa = placa; //Talvez de para botar direto
+    arq << carro.placa << endl;
 
-    arq.seekg(0, ios::end);
-    n = arq.tellg() / sizeof(Veiculo);
-    arq.seekg(0, ios::beg);
-
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Veiculo));
-        if (carro.placa == procurar) {
-            cout << "Veiculo ja cadastrado!" << endl;
-            system("pause");
-            return;
-        }
-    }
-    carro.placa = procurar;
     cout << "Informe o codigo do veiculo: ";
     cin >> carro.codigo;
+    arq << carro.codigo << endl;
+
     cout << "Informe a categoria (1 - Basico / 2 - Intermediario / 3 - Super): ";
     cin >> carro.categoria;
+    arq << carro.categoria << endl;
     cin.ignore();
+
     cout << "Informe a marca: ";
-    getline(cin, aux);
-    for (i = 0; i < aux.size(); i++)
-        carro.marca[i] = aux[i];
-    carro.marca[i] = '\0';
+    getline(cin, carro.marca);
+    arq << carro.marca << endl;
 
     cout << "Informe o modelo: ";
-    getline(cin, aux);
-    for (i = 0; i < aux.size(); i++)
-        carro.modelo[i] = aux[i];
-    carro.modelo[i] = '\0';
+    getline(cin, carro.modelo);
+    arq << carro.modelo << endl;
 
     carro.situacao = 'D';
+    arq << carro.situacao << endl;
     carro.quantidade = 0;
+    arq << carro.quantidade << endl;
 
-    arq.write((char *)(&carro), sizeof(Veiculo));
-    cout << "Veiculo inserido com sucesso!" << endl;
     arq.close();
 }
 
-void excluir_veiculo() { //! Talvez esteja errado
-    int n, procurar;
-    Veiculo carro;
-    ifstream arq("FROTA.DAD", ios::binary | ios::in);
-    ofstream temp("temp.DAD", ios::binary | ios::out | ios::app);
+void excluir_veiculo(string nome) { //! Talvez esteja errado
+    string linha;
+    ifstream arq("frota.txt", ios::in);
+    ofstream temp("temp.txt", ios::out);
 
-    cout << "Informe a placa do veiculo: ";
-    cin >> procurar;
-
-    arq.seekg(0, ios::end);
-    n = arq.tellg() / sizeof(Veiculo);
-    arq.seekg(0, ios::beg);
-
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Veiculo));
-        if (carro.placa != procurar) {
-            temp.write((char *)(&carro), sizeof(Veiculo));
+    while (getline(arq, linha)) {
+        if (linha == nome) { //! MELHOR ISSO AQUI
+            getline(arq, linha);
+            getline(arq, linha);
+            getline(arq, linha);
+            getline(arq, linha);
+            getline(arq, linha);
+            getline(arq, linha);
+            getline(arq, linha);
         } else
-            cout << "Excluindo veiculo..." << endl;
+            temp << linha << endl;
     }
-    arq.close();
-    temp.close();
 
-    remove("FROTA.DAD");
-    rename("temp.DAD", "FROTA.DAD");
+    temp.close();
+    arq.close();
+    remove("frota.txt");
+    rename("temp.txt", "frota.txt");
 }
 
-bool verificar_cliente(string nome) {
-    ifstream arq("cliente.txt");
+bool verificar_cliente(string nome, string escolha) {
+    ifstream arq(escolha.c_str());
     string linha;
 
     while (getline(arq, linha)) {
@@ -279,17 +283,12 @@ bool verificar_cliente(string nome) {
 
 void inserir_cliente(string nome) {
     Cliente pessoa;
-    string aux;
     ofstream gravar("CLIENTE.TXT", ios::app);
-    int i;
+    unsigned int i;
 
     gravar << nome << endl;
     cout << "Informe o CPF do cliente: ";
-    getline(cin, aux);
-    for (i = 0; i < aux.size(); i++)
-        pessoa.cpf[i] = aux[i];
-    pessoa.cpf[i] = '\0'; //Fechamento da str
-    //pessoa.cpf = aux.c_str();
+    getline(cin, pessoa.cpf);
     gravar << pessoa.cpf << endl;
     cout << "Informe o telefone do cliente: ";
     getline(cin, pessoa.telefone);
@@ -317,7 +316,7 @@ void excluir_cliente(string nome) {
     rename("temp.txt", "CLIENTE.TXT");
 }
 
-bool mostrar_categoria(int categoria) {
+/*bool mostrar_categoria(int categoria) {
     ifstream arq("FROTA.DAD", ios::binary);
     Veiculo carro;
     bool mostrar = false;
@@ -353,7 +352,8 @@ void locacao(int placa, string nome, int categoria) {
     string linha, aux;
     Locacao carro;
     Veiculo carroV;
-    int dias = 0, aux2, i;
+    int dias = 0, aux2;
+    unsigned int i;
 
     while (!arq2.eof()) {
         getline(arq2, linha); //Abriu cliente
@@ -407,64 +407,39 @@ void locacao(int placa, string nome, int categoria) {
     gravar.close();
     arq.close();
     arq2.close();
-}
+}*/
 
 void relatorioA() {
-    ifstream arq("FROTA.DAD", ios::binary);
-    Veiculo carro;
-    string teste;
+    ifstream arq("frota.txt", ios::in);
+    string linha, teste;
 
-    arq.seekg(0, ios::end);
-    int n = arq.tellg() / sizeof(Veiculo);
-    arq.seekg(0, ios::beg);
-
-    cout << "Mostrando veiculos... " << endl;
+    system("cls");
+    cout << "Mostrando veiculos..." << endl;
     cout << "---------------------------------" << endl;
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Veiculo));
-
-        if (carro.situacao == 'D')
+    while (getline(arq, linha)) {
+        cout << "Placa: " << linha << endl;
+        getline(arq, linha);
+        cout << "Codigo: " << linha << endl;
+        getline(arq, linha);
+        cout << "Categoria: " << linha << endl;
+        getline(arq, linha);
+        cout << "Marca: " << linha << endl;
+        getline(arq,linha);
+        cout << "Modelo: " << linha << endl;
+        getline(arq, linha);
+        if (linha == "D")
             teste = "Disponivel";
         else
             teste = "Locado";
-
-        cout << "Codigo: " << carro.codigo << endl;
-        cout << "Marca: " << carro.marca << endl;
-        cout << "Modelo: " << carro.modelo << endl;
-        cout << "Placa: " << carro.placa << endl;
         cout << "Situacao: " << teste << endl;
-        cout << "Quantidade de locacoes: " << carro.quantidade << endl;
-        cout << "Categoria: " << carro.categoria << endl;
+        getline(arq, linha);
+        cout << "Quantidade de locacoes: " << linha << endl;
         cout << "---------------------------------" << endl;
     }
-
     arq.close();
 }
 
-void relatorioC() {
-    ifstream arq("LOCACAO.DAD", ios::binary);
-    Locacao carro;
 
-    arq.seekg(0, ios::end);
-    int n = arq.tellg() / sizeof(Locacao);
-    arq.seekg(0, ios::beg);
-
-    cout << "Mostrando veiculos... " << endl;
-    cout << "---------------------------------" << endl;
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Locacao));
-
-        cout << "Codigo: " << carro.codigo << endl;
-        cout << "CPF: " << carro.cpf << endl; //* Transformado para char
-        cout << "Valor: " << carro.valor << endl;
-        cout << "Valor pago: " << fixed << setprecision(2) << carro.valorP << endl;
-        cout << "Data de locacao: " << carro.dia << "/" << carro.mes << endl;
-        cout << "Data de devolucao: " << carro.diaE << "/" << carro.mesE << endl;
-        cout << "---------------------------------" << endl;
-    }
-
-    arq.close();
-}
 
 void relatorioB() {
     ifstream arq("CLIENTE.TXT", ios::in);
@@ -510,6 +485,31 @@ void relatorioD(int dia, int mes) {
             cout << "---------------------------------" << endl;
         }
     }
+    arq.close();
+}
+
+void relatorioC() {
+    ifstream arq("LOCACAO.DAD", ios::binary);
+    Locacao carro;
+
+    arq.seekg(0, ios::end);
+    int n = arq.tellg() / sizeof(Locacao);
+    arq.seekg(0, ios::beg);
+
+    cout << "Mostrando veiculos... " << endl;
+    cout << "---------------------------------" << endl;
+    for (int i = 0; i < n; i++) {
+        arq.read((char *)(&carro), sizeof(Locacao));
+
+        cout << "Codigo: " << carro.codigo << endl;
+        cout << "CPF: " << carro.cpf << endl; //* Transformado para char
+        cout << "Valor: " << carro.valor << endl;
+        cout << "Valor pago: " << fixed << setprecision(2) << carro.valorP << endl;
+        cout << "Data de locacao: " << carro.dia << "/" << carro.mes << endl;
+        cout << "Data de devolucao: " << carro.diaE << "/" << carro.mesE << endl;
+        cout << "---------------------------------" << endl;
+    }
+
     arq.close();
 }
 
