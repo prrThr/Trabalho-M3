@@ -233,15 +233,41 @@ void inserir_veiculo(string placa) {
     arq.close();
 }
 
-void excluir_veiculo(string nome) {
+void excluir_veiculo(string placa) {
     string linha;
     ifstream arq("frota.txt", ios::in);
     ofstream temp("temp.txt", ios::out);
+    Veiculo carro;
+    string qntd;
+    bool locado = false;
 
     while (getline(arq, linha)) {
-        if (linha == nome) {
-            for (int i = 0; i < 7; i++)
-                getline(arq, linha);
+        if (linha == placa) {
+            getline(arq, linha);
+            carro.codigo = linha;
+            getline(arq, linha);
+            carro.categoria = linha;
+            getline(arq, linha);
+            carro.marca = linha;
+            getline(arq, linha);
+            carro.modelo = linha;
+            getline(arq, linha);
+            carro.situacao = linha;
+            getline(arq, linha);
+            qntd = linha;
+            if (carro.situacao == "L") {
+                cout << "Nao e possivel excluir veiculo enquanto ele estiver locado" << endl;
+                temp << placa << endl;
+                temp << carro.codigo << endl;
+                temp << carro.categoria << endl;
+                temp << carro.marca << endl;
+                temp << carro.modelo << endl;
+                temp << carro.situacao << endl;
+                temp << qntd << endl;
+                locado = true;
+                break;
+            }
+
         } else
             temp << linha << endl;
     }
@@ -250,7 +276,8 @@ void excluir_veiculo(string nome) {
     arq.close();
     remove("frota.txt");
     rename("temp.txt", "frota.txt");
-    cout << "Veiculo excluido!" << endl;
+    if (!locado)
+        cout << "Veiculo excluido!" << endl;
 }
 
 bool verificar_existente(string nome, string escolha) {
@@ -373,7 +400,7 @@ void locacao(string placa, string nome, int categoria) {
 
     string linha;
     Locacao carro;
-    int dias, meses, quantidade, i = 0;
+    int dias, meses, i = 0;
     bool achou = false;
 
     while (getline(cliente, linha)) { // Abriu cliente
@@ -388,10 +415,11 @@ void locacao(string placa, string nome, int categoria) {
     frota.open("frota.txt", ios::in);
     new_frota.open("new_frota.txt", ios::out);
     while (getline(frota, linha)) {
-        i++;
         if (linha == placa)
             achou = true;
-        if (achou == true and i == 2)
+        if (achou)
+            i++;
+        if (achou and i == 2)
             gravar << linha << endl; // Gravar o código
         if (achou and i == 6)
             new_frota << "L" << endl;
