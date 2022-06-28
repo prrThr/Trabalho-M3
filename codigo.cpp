@@ -1,36 +1,37 @@
 #include <ctime>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 using namespace std;
 
 typedef struct {
-    string nome, telefone;
-    char cpf[11];
+    string nome, telefone, cpf;
 } Cliente;
 
 typedef struct {
-    char marca[10] = {}, modelo[10] = {}, situacao; //? Verificar se é necessario zerar todas as variaveis
-    int quantidade = 0, categoria = 0, codigo = 0, placa = 0;
+    string marca, modelo, placa, situacao, categoria, codigo;
+    int quantidade;
 } Veiculo;
 
 typedef struct {
-    char cpf[11];
-    int dia, mes, diaE, mesE, codigo;
-    float valor = 0, valorP = 0;
+    string cpf, codigo;
+    int dia, mes, diaE, mesE;
+    float valor, valorP;
 } Locacao;
 
 int funcao_opcao(int, int, int);
 int veiculo_ou_cliente();
 
-void incluir_veiculo(); // Verifica junto
-void excluir_veiculo();
+void inserir_veiculo(string);
+void excluir_veiculo(string);
 
-bool verificar_cliente(string);
+bool verificar_existente(string, string);
 void inserir_cliente(string);
 void excluir_cliente(string);
 
+int escolher_categoria();
 bool mostrar_categoria(int);
-void locacao(int, string, int);
+void locacao(string, string, int);
 void devolucao(string, int, int);
 
 void relatorioA();
@@ -44,28 +45,34 @@ int main() {
     time_t now = time(0);
     tm *ltm = localtime(&now);
     int dia = ltm->tm_mday, mes = 1 + ltm->tm_mon, ano = 1900 + ltm->tm_year;
-    int opcao, opcao2, opcao3, placa;
-    bool existente, existente2 = false;
-    string nome, aux;
-    Veiculo carro;
+    int opcao, opcao2, opcao_categoria;
+    bool existente, existente_categoria = false;
+    string nome_ou_placa, aux, escolha, placa;
 
     do {
         opcao = funcao_opcao(dia, mes, ano);
         switch (opcao) {
         case 1:
             system("cls");
-            opcao2 = veiculo_ou_cliente(); // TODO: fazer do-while quando terminar
+            opcao2 = veiculo_ou_cliente();
             cin.ignore();
-            if (opcao2 == 1)
-                incluir_veiculo();
-            else {
+
+            if (opcao2 == 1) {
+                cout << "Digite a placa: ";
+                getline(cin, nome_ou_placa);
+                existente = verificar_existente(nome_ou_placa, "frota.txt");
+                if (!existente)
+                    inserir_veiculo(nome_ou_placa);
+                else
+                    cout << "Veiculo ja cadastrado!" << endl;
+
+            } else {
                 cout << "Digite o nome do cliente que deseja inserir: ";
-                getline(cin, nome);
-                existente = verificar_cliente(nome);
-                if (!existente) {
-                    inserir_cliente(nome);
-                    cout << "Cliente inserido com sucesso!" << endl;
-                } else
+                getline(cin, nome_ou_placa);
+                existente = verificar_existente(nome_ou_placa, "cliente.txt");
+                if (!existente)
+                    inserir_cliente(nome_ou_placa);
+                else
                     cout << "Cliente ja cadastrado!" << endl;
             }
             break;
@@ -74,17 +81,23 @@ int main() {
             system("cls");
             opcao2 = veiculo_ou_cliente();
             cin.ignore();
+
             if (opcao2 == 1) {
-                excluir_veiculo();
-                cout << "Veiculo excluido!" << endl;
+                cout << "Digite a placa do veiculo que deseja excluir: ";
+                getline(cin, nome_ou_placa);
+                existente = verificar_existente(nome_ou_placa, "frota.txt");
+                if (existente)
+                    excluir_veiculo(nome_ou_placa);
+                else
+                    cout << "Veiculo inexistente!" << endl;
+
             } else {
                 cout << "Digite o nome do cliente que deseja excluir: ";
-                getline(cin, nome);
-                existente = verificar_cliente(nome);
-                if (existente) {
-                    excluir_cliente(nome);
-                    cout << "Cliente excluido!" << endl;
-                } else
+                getline(cin, nome_ou_placa);
+                existente = verificar_existente(nome_ou_placa, "cliente.txt");
+                if (existente)
+                    excluir_cliente(nome_ou_placa);
+                else
                     cout << "Cliente inexistente!" << endl;
             }
             break;
@@ -93,39 +106,33 @@ int main() {
             system("cls");
             cout << "Digite o nome do cliente: ";
             cin.ignore();
-            getline(cin, nome);
-            existente = verificar_cliente(nome);
+            getline(cin, nome_ou_placa);
+            existente = verificar_existente(nome_ou_placa, "cliente.txt");
             if (!existente) {
                 cout << "Cliente inexistente! Retornando..." << endl;
                 break;
             } else {
-                do { // TODO: Passar os cout's para dentro da função mostrar_categoria
-                    cout << "Qual a categoria do veiculo que voce deseja fazer a locacao?" << endl;
-                    cout << "Categoria 1: Basica (R$10 por dia)" << endl;
-                    cout << "Categoria 2: Intermediaria (R$20 por dia)" << endl;
-                    cout << "Categoria 3: Super (R$30 por dia)" << endl;
-                    cin >> opcao3;
-                } while (opcao3 < 1 or opcao3 > 3);
-                existente2 = mostrar_categoria(opcao3); //! Erro aqui
-                if (existente2 == true) {
+                opcao_categoria = escolher_categoria();
+                existente_categoria = mostrar_categoria(opcao_categoria);
+                if (existente_categoria) {
                     cout << "Informe a placa do veiculo que deseja lotar: ";
-                    cin >> placa;
-                    locacao(placa, nome, opcao3);
+                    getline(cin, placa);
+                    locacao(placa, nome_ou_placa, opcao_categoria);
                 }
             }
             break;
 
-        case 4:
-            cout << "Digite o cpf do cliente que deseja fazer a devolucao: ";
-            cin.ignore();
-            getline(cin, aux);
-            existente = verificar_cliente(aux);
-            if (existente == true) {
-                devolucao(aux, dia, mes);
-                cout << "Devolucao realizada!" << endl;
-            } else
-                cout << "Cliente nao cadastrado!" << endl;
-            break;
+            /*case 4:
+                cout << "Digite o cpf do cliente que deseja fazer a devolucao: ";
+                cin.ignore();
+                getline(cin, aux);
+                existente = verificar_existente(aux);
+                if (existente == true) {
+                    devolucao(aux, dia, mes);
+                    cout << "Devolucao realizada!" << endl;
+                } else
+                    cout << "Cliente nao cadastrado!" << endl;
+                break;*/
 
         case 5:
             do {
@@ -181,86 +188,71 @@ int funcao_opcao(int dia, int mes, int ano) {
 
 int veiculo_ou_cliente() {
     int escolher;
-    cout << "1 - Veiculo" << endl;
-    cout << "2 - Cliente" << endl;
-    cin >> escolher;
+    do {
+        cout << "1 - Veiculo" << endl;
+        cout << "2 - Cliente" << endl;
+        cin >> escolher;
+        if (escolher != 1 and escolher != 2)
+            cout << "Digite apenas 1 ou 2" << endl;
+    } while (escolher != 1 and escolher != 2);
     return escolher;
 }
 
-void incluir_veiculo() { //! Talvez esteja errado
-    int n;
+void inserir_veiculo(string placa) {
     Veiculo carro;
-    fstream arq("FROTA.DAD", ios::binary | ios::in | ios::out | ios::app);
-    string aux;
-    int procurar;
+    ofstream arq("FROTA.TXT", ios::app);
+    string linha;
 
-    cout << "Informe a placa do veiculo: ";
-    cin >> procurar;
+    carro.placa = placa; // Talvez de para botar direto
+    arq << carro.placa << endl;
 
-    arq.seekg(0, ios::end);
-    n = arq.tellg() / sizeof(Veiculo);
-    arq.seekg(0, ios::beg);
-
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Veiculo));
-        if (carro.placa == procurar) {
-            cout << "Veiculo ja cadastrado!" << endl;
-            system("pause");
-            return;
-        }
-    }
-    carro.placa = procurar;
     cout << "Informe o codigo do veiculo: ";
-    cin >> carro.codigo;
+    getline(cin, carro.codigo);
+    arq << carro.codigo << endl;
+
     cout << "Informe a categoria (1 - Basico / 2 - Intermediario / 3 - Super): ";
-    cin >> carro.categoria;
-    cin.ignore();
+    getline(cin, carro.categoria);
+    arq << carro.categoria << endl;
+
     cout << "Informe a marca: ";
-    getline(cin, aux);
-    for (unsigned int i = 0; i < aux.size(); i++)
-        carro.marca[i] = aux[i];
+    getline(cin, carro.marca);
+    arq << carro.marca << endl;
 
     cout << "Informe o modelo: ";
-    getline(cin, aux);
-    for (unsigned int i = 0; i < aux.size(); i++)
-        carro.modelo[i] = aux[i];
+    getline(cin, carro.modelo);
+    arq << carro.modelo << endl;
 
-    carro.situacao = 'D';
+    carro.situacao = "D";
+    arq << carro.situacao << endl;
+    carro.quantidade = 0;
+    arq << carro.quantidade << endl;
 
-    arq.write((char *)(&carro), sizeof(Veiculo));
-    cout << "Veiculo inserido com sucesso!" << endl;
+    cout << "Veiculo inserido com sucesso" << endl;
     arq.close();
 }
 
-void excluir_veiculo() { //! Talvez esteja errado
-    int n, procurar;
-    Veiculo carro;
-    ifstream arq("FROTA.DAD", ios::binary | ios::in);
-    ofstream temp("temp.DAD", ios::binary | ios::out | ios::app);
+void excluir_veiculo(string nome) {
+    string linha;
+    ifstream arq("frota.txt", ios::in);
+    ofstream temp("temp.txt", ios::out);
 
-    cout << "Informe a placa do veiculo: ";
-    cin >> procurar;
-
-    arq.seekg(0, ios::end);
-    n = arq.tellg() / sizeof(Veiculo);
-    arq.seekg(0, ios::beg);
-
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Veiculo));
-        if (carro.placa != procurar) {
-            temp.write((char *)(&carro), sizeof(Veiculo));
+    while (getline(arq, linha)) {
+        if (linha == nome) {
+            for (int i = 0; i < 7; i++)
+                getline(arq, linha);
         } else
-            cout << "Excluindo veiculo..." << endl;
+            temp << linha << endl;
     }
-    arq.close();
-    temp.close();
 
-    remove("FROTA.DAD");
-    rename("temp.DAD", "FROTA.DAD");
+    temp.close();
+    arq.close();
+    remove("frota.txt");
+    rename("temp.txt", "frota.txt");
+    cout << "Veiculo excluido!" << endl;
 }
 
-bool verificar_cliente(string nome) {
-    ifstream arq("cliente.txt");
+bool verificar_existente(string nome, string escolha) {
+    ifstream arq(escolha.c_str());
     string linha;
 
     while (getline(arq, linha)) {
@@ -271,24 +263,23 @@ bool verificar_cliente(string nome) {
     }
 
     arq.close();
+    cout << "Cliente excluido!" << endl;
     return false;
 }
 
 void inserir_cliente(string nome) {
     Cliente pessoa;
-    string aux;
     ofstream gravar("CLIENTE.TXT", ios::app);
 
     gravar << nome << endl;
     cout << "Informe o CPF do cliente: ";
-    getline(cin, aux);
-    for (unsigned int i = 0; i < aux.size(); i++)
-        pessoa.cpf[i] = aux[i];
+    getline(cin, pessoa.cpf);
     gravar << pessoa.cpf << endl;
     cout << "Informe o telefone do cliente: ";
     getline(cin, pessoa.telefone);
     gravar << pessoa.telefone << endl;
 
+    cout << "Cliente inserido com sucesso!" << endl;
     gravar.close();
 }
 
@@ -311,89 +302,124 @@ void excluir_cliente(string nome) {
     rename("temp.txt", "CLIENTE.TXT");
 }
 
+int escolher_categoria() {
+    int opcao;
+    do {
+        cout << "Qual a categoria do veiculo que voce deseja fazer a locacao?" << endl;
+        cout << "Categoria 1: Basica (R$10 por dia)" << endl;
+        cout << "Categoria 2: Intermediaria (R$20 por dia)" << endl;
+        cout << "Categoria 3: Super (R$30 por dia)" << endl;
+        cin >> opcao;
+        cin.ignore();
+    } while (opcao < 1 or opcao > 3);
+    return opcao;
+}
+
 bool mostrar_categoria(int categoria) {
-    ifstream arq("FROTA.DAD", ios::binary);
+    ifstream arq("frota.txt", ios::in);
     Veiculo carro;
     bool mostrar = false;
+    string linha;
+    string marca, modelo, placa, situacao, categoria2, catStr = to_string(categoria), codigo, quantidade;
 
-    arq.seekg(0, ios::beg);
     cout << "Mostrando veiculos disponiveis por categoria: " << endl;
     cout << "---------------------------------" << endl;
-    while (arq.read((char *)(&carro), sizeof(Veiculo))) {
-        // TODO: Tirar os couts quando terminar de fazer
-        cout << "Categoria inserida: " << carro.categoria << endl;
-        cout << "Categoria: " << categoria << endl;
-        cout << "Situacao: " << carro.situacao << endl;
-        if (carro.categoria == categoria and carro.situacao == 'D') {
+
+    while (!arq.eof()) {
+        getline(arq, linha);
+        placa = linha;
+
+        getline(arq, linha);
+        codigo = linha;
+
+        getline(arq, linha);
+        categoria2 = linha;
+
+        getline(arq, linha);
+        marca = linha;
+
+        getline(arq, linha);
+        modelo = linha;
+
+        getline(arq, linha);
+        situacao = linha;
+
+        getline(arq, linha);
+        quantidade = linha;
+
+        if (categoria2 == catStr and situacao == "D") {
             mostrar = true;
-            cout << "Codigo: " << carro.codigo << endl;
-            cout << "Marca: " << carro.marca << endl;
-            cout << "Modelo: " << carro.modelo << endl;
-            cout << "Placa: " << carro.placa << endl;
-            cout << "---------------------------------" << endl;
+            cout << "Placa: " << placa << endl;
+            cout << "Codigo: " << codigo << endl;
+            cout << "Categoria: " << categoria2 << endl;
+            cout << "Marca: " << marca << endl;
+            cout << "Modelo: " << modelo << endl;
+            cout << "Situacao: Disponivel" << endl;
+            cout << "Quantidade: " << quantidade << endl;
+            cout << "--------------------------------------" << endl;
         }
+
+        else if (mostrar == false)
+            cout << "Nenhum veiculo disponivel nessa categoria..." << endl;
     }
-    if (mostrar == false)
-        cout << "nenhum veiculo disponivel nessa categoria..." << endl;
     arq.close();
     return mostrar;
 }
 
-void locacao(int placa, string nome, int categoria) {
-    ofstream gravar("LOCACAO.DAD", ios::out | ios::binary | ios::app);
-    fstream arq("FROTA.DAD", ios::ate | ios::binary); // Abre e vai pro final
-    ifstream arq2("CLIENTE.TXT", ios::in);
+void locacao(string placa, string nome, int categoria) {
+    ofstream gravar("LOCACAO.TXT", ios::out | ios::app);
+    fstream arq("frota.txt", ios::in | ios::out | ios::ate); // Abre e vai pro final
+    ifstream arq2("cliente.txt", ios::in);
 
-    string linha, aux;
-    Locacao carro;
-    Veiculo carroV;
-    int dias = 0, aux2;
+    string linha;
+    Veiculo carro;
+    int dias = 0, aux2, quantidade, diaL, mesL, diaE, mesE;
 
     while (!arq2.eof()) {
-        getline(arq2, linha);
+        getline(arq2, linha); // Abriu cliente
         if (linha == nome) {
             getline(arq, linha);
-            aux = linha;
-            for (unsigned int i = 0; i < aux.size(); i++)
-                carro.cpf[i] = aux[i];
+            gravar << linha << endl;
             break;
         }
     }
 
-    arq.seekg(0, ios::beg);
     do {
-        arq.read((char *)(&carroV), sizeof(Veiculo));
-        if (carroV.placa == placa) {
-            carro.codigo = carroV.codigo;
-            carroV.quantidade++;
-            carroV.situacao = 'L';
-            arq.seekp(-sizeof(Veiculo), ios::cur);
-            arq.write((char *)(&carroV), sizeof(Veiculo));
+        if (linha == placa) {
+            for (int i = 0; i < 5; i++)
+                getline(arq, linha);
+            arq << "L" << endl;
+
+            arq >> quantidade;
+            arq << quantidade++;
             break;
         }
-    } while (arq.eof());
+    } while (!getline(arq, linha));
 
     cout << "Informe o dia da locacao:";
-    cin >> carro.dia;
+    cin >> diaL;
+    gravar << diaL << endl;
     cout << "Informe o mes da locacao: ";
-    cin >> carro.mes;
+    cin >> mesL;
+    gravar << mesL << endl;
     cout << "Informe o dia da devolucao: ";
-    cin >> carro.diaE;
+    cin >> diaE;
+    gravar << diaE << endl;
     cout << "Informe o mes da devolucao: ";
-    cin >> carro.mesE;
+    cin >> mesE;
+    gravar << mesE << endl;
 
-    if (carro.mes == carro.mesE)
-        dias = carro.diaE - carro.dia;
-    else if (carro.mes < carro.mesE) {
-        aux2 = carro.mesE - carro.mes;
-        dias = (30 - carro.dia) + ((aux2 - 1) * 30) + carro.diaE;
+    if (mesL == mesE)
+        dias = diaE - diaL;
+    else if (mesL < mesE) {
+        aux2 = mesE - mesL;
+        dias = (30 - diaL) + ((aux2 - 1) * 30) + diaE;
     }
     // 15/07 - 23/10
     //(30 - 15) + ((3-1)*30) + 23; = 15 + 60 + 23 = 98 dias
-    carro.valor = (10 * categoria) * dias;
-    cout << "Valor a ser pago: R$" << carro.valor << ",00" << endl;
-
-    gravar.write((char *)(&carro), sizeof(Locacao));
+    // carro.valor = (10 * categoria) * dias;
+    //   carro.valorP = carro.valor;
+    // cout << "Valor a ser pago: R$" << carro.valor << ",00" << endl;
 
     gravar.close();
     arq.close();
@@ -401,34 +427,32 @@ void locacao(int placa, string nome, int categoria) {
 }
 
 void relatorioA() {
-    ifstream arq("FROTA.DAD", ios::binary);
-    Veiculo carro;
-    string teste;
+    ifstream arq("frota.txt", ios::in);
+    string linha, teste;
 
-    arq.seekg(0, ios::end);
-    int n = arq.tellg() / sizeof(Veiculo);
-    arq.seekg(0, ios::beg);
-
-    cout << "Mostrando veiculos... " << endl;
+    system("cls");
+    cout << "Mostrando veiculos..." << endl;
     cout << "---------------------------------" << endl;
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Veiculo));
-
-        if (carro.situacao == 'D')
+    while (getline(arq, linha)) {
+        cout << "Placa: " << linha << endl;
+        getline(arq, linha);
+        cout << "Codigo: " << linha << endl;
+        getline(arq, linha);
+        cout << "Categoria: " << linha << endl;
+        getline(arq, linha);
+        cout << "Marca: " << linha << endl;
+        getline(arq, linha);
+        cout << "Modelo: " << linha << endl;
+        getline(arq, linha);
+        if (linha == "D")
             teste = "Disponivel";
         else
             teste = "Locado";
-
-        cout << "Codigo: " << carro.codigo << endl;
-        cout << "Marca: " << carro.marca << endl;
-        cout << "Modelo: " << carro.modelo << endl;
-        cout << "Placa: " << carro.placa << endl;
         cout << "Situacao: " << teste << endl;
-        cout << "Quantidade de locacoes: " << carro.quantidade << endl;
-        cout << "Categoria: " << carro.categoria << endl;
+        getline(arq, linha);
+        cout << "Quantidade de locacoes: " << linha << endl;
         cout << "---------------------------------" << endl;
     }
-
     arq.close();
 }
 
@@ -448,31 +472,6 @@ void relatorioB() {
         cout << "---------------------------------" << endl;
     }
     cout << endl;
-    arq.close();
-}
-
-void relatorioC() {
-    ifstream arq("LOCACAO.DAD", ios::binary | ios::in);
-    Locacao carro;
-
-    arq.seekg(0, ios::end);
-    int n = arq.tellg() / sizeof(Locacao);
-    arq.seekg(0, ios::beg);
-
-    cout << "Mostrando veiculos... " << endl;
-    cout << "---------------------------------" << endl;
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Locacao));
-
-        cout << "Codigo: " << carro.codigo << endl;
-        cout << "CPF: " << carro.cpf << endl; //* Transformado para char
-        cout << "Valor: " << carro.valor << endl;
-        cout << "Valor pago: " << carro.valorP << endl;
-        cout << "Data de locacao: " << carro.dia << "/" << carro.mes << endl;
-        cout << "Data de devolucao: " << carro.diaE << "/" << carro.mesE << endl;
-        cout << "---------------------------------" << endl;
-    }
-
     arq.close();
 }
 
@@ -504,6 +503,31 @@ void relatorioD(int dia, int mes) {
     arq.close();
 }
 
+void relatorioC() {
+    ifstream arq("LOCACAO.DAD", ios::binary);
+    Locacao carro;
+
+    arq.seekg(0, ios::end);
+    int n = arq.tellg() / sizeof(Locacao);
+    arq.seekg(0, ios::beg);
+
+    cout << "Mostrando veiculos... " << endl;
+    cout << "---------------------------------" << endl;
+    for (int i = 0; i < n; i++) {
+        arq.read((char *)(&carro), sizeof(Locacao));
+
+        cout << "Codigo: " << carro.codigo << endl;
+        cout << "CPF: " << carro.cpf << endl; //* Transformado para char
+        cout << "Valor: " << carro.valor << endl;
+        cout << "Valor pago: " << fixed << setprecision(2) << carro.valorP << endl;
+        cout << "Data de locacao: " << carro.dia << "/" << carro.mes << endl;
+        cout << "Data de devolucao: " << carro.diaE << "/" << carro.mesE << endl;
+        cout << "---------------------------------" << endl;
+    }
+
+    arq.close();
+}
+
 void devolucao(string cpf, int dia, int mes) {
     fstream arq1("FROTA.DAD", ios::binary);
     fstream arq2("LOCACAO.DAD", ios::binary);
@@ -523,8 +547,7 @@ void devolucao(string cpf, int dia, int mes) {
     for (int i = 0; i < n; i++) {
         arq2.read((char *)(&carro2), sizeof(Locacao));
 
-        if (carro2.cpf == cpf) // talvez nao funcione
-        {
+        if (carro2.cpf == cpf) { // talvez nao funcione
             for (int j = 0; j < n2; i++) {
                 arq1.read((char *)(&carro1), sizeof(Veiculo));
                 if (carro2.codigo == carro1.codigo) {
@@ -547,8 +570,7 @@ void devolucao(string cpf, int dia, int mes) {
     } else if (mes == carro2.mesE and dia > carro2.diaE) {
         dias = dia - carro2.diaE;
         multa = true;
-    } else // dentro do prazo
-    {
+    } else { // dentro do prazo
         carro2.valorP = carro2.valor;
         cout << "Valor total a pagar: R$" << carro2.valorP << ",00" << endl;
     }
