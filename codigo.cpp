@@ -39,8 +39,8 @@ void relatorioB();
 void relatorioC();
 void relatorioD(int, int);
 
-//TODO Agora: conta para os valores na locação, relatório D, devolução e ordenação
-//TODO Ao terminar: zerar variáveis, cin.ignore, testes de entrada, reduzir aonde for possível
+// TODO Agora: conta para os valores na locação, relatório D, devolução e ordenação
+// TODO Ao terminar: zerar variáveis, cin.ignore, testes de entrada, reduzir aonde for possível
 
 int main() {
     time_t now = time(0);
@@ -119,7 +119,8 @@ int main() {
                     cout << "Informe a placa do veiculo que deseja lotar: ";
                     getline(cin, placa);
                     locacao(placa, nome_ou_placa, opcao_categoria);
-                }
+                } else
+                    cout << "Nenhum veiculo disponivel nesta categoria!" << endl;
             }
             break;
 
@@ -359,9 +360,6 @@ bool mostrar_categoria(int categoria) {
             cout << "Quantidade: " << quantidade << endl;
             cout << "--------------------------------------" << endl;
         }
-
-        else if (mostrar == false)
-            cout << "Nenhum veiculo disponivel nessa categoria..." << endl;
     }
     arq.close();
     return mostrar;
@@ -369,36 +367,36 @@ bool mostrar_categoria(int categoria) {
 
 void locacao(string placa, string nome, int categoria) {
     ofstream gravar("locacao.txt", ios::out | ios::app);
-    fstream arq("frota.txt", ios::in | ios::out); // Abre e vai pro final
-    ifstream arq2("cliente.txt", ios::in);
+    ifstream cliente("cliente.txt", ios::in);
+    ifstream frota;
+    ofstream new_frota;
 
     string linha;
     Locacao carro;
-    int dias = 0, aux2, quantidade;
+    int dias, meses, quantidade, i = 0;
+    bool achou = false;
 
-    while (getline(arq2, linha)) { // Abriu cliente
+    while (getline(cliente, linha)) { // Abriu cliente
         if (linha == nome) {
-            getline(arq2, linha);
+            getline(cliente, linha);
             gravar << linha << endl; // Grava o CPF do cliente achado
             break;
         }
     }
+    cliente.close();
 
-    while (getline(arq, linha)) {
-        if (linha == placa) {
-            getline(arq, linha);
-            getline(arq, linha);
-            gravar << linha << endl; // Grava codigo
-
-            getline(arq, linha);
-            getline(arq, linha);
-            arq << "L" << endl; // Altera de D para L
-
-            getline(arq, linha);
-            quantidade = 0;
-            arq << quantidade++; // Aumenta a quantidade em 1
-            break;
-        }
+    frota.open("frota.txt", ios::in);
+    new_frota.open("new_frota.txt", ios::out);
+    while (getline(frota, linha)) {
+        i++;
+        if (linha == placa)
+            achou = true;
+        if (achou == true and i == 2)
+            gravar << linha << endl; // Gravar o código
+        if (achou and i == 6)
+            new_frota << "L" << endl;
+        else
+            new_frota << linha << endl;
     }
 
     cout << "Informe o dia da locacao:";
@@ -413,13 +411,13 @@ void locacao(string placa, string nome, int categoria) {
     if (carro.mes == carro.mesE)
         dias = carro.diaE - carro.dia;
     else if (carro.mes < carro.mesE) {
-        aux2 = carro.mesE - carro.mes;
-        dias = (30 - carro.dia) + ((aux2 - 1) * 30) + carro.diaE;
+        meses = carro.mesE - carro.mes;
+        dias = (30 - carro.dia) + ((meses - 1) * 30) + carro.diaE;
     }
-    // 15/07 - 23/10
+    // Ex: 15/07 - 23/10
     //(30 - 15) + ((3-1)*30) + 23; = 15 + 60 + 23 = 98 dias
+
     carro.valor = (10 * categoria) * dias;
-    carro.valorP = carro.valor;
     cout << "Valor a ser pago: R$" << carro.valor << ",00" << endl;
 
     gravar << carro.dia << endl;
@@ -427,11 +425,14 @@ void locacao(string placa, string nome, int categoria) {
     gravar << carro.diaE << endl;
     gravar << carro.mesE << endl;
     gravar << carro.valor << endl;
-    gravar << carro.valorP << endl;
+    gravar << 0 << endl; // Valor
 
     gravar.close();
-    arq.close();
-    arq2.close();
+    frota.close();
+    new_frota.close();
+    remove("frota.txt");
+    rename("new_frota.txt", "frota.txt");
+    cout << "Veiculo locado com sucesso!" << endl;
 }
 
 void relatorioA() {
@@ -504,11 +505,12 @@ void relatorioC() {
         cout << "Data de devolucao: " << linha;
         getline(arq, linha);
         cout << "/" << linha << endl;
-
-        cout << "Valor: " << linha << endl;
         getline(arq, linha);
 
-        cout << "Valor pago: " << linha << endl;
+        cout << "Valor a pagar: R$" << linha << ",00" << endl;
+        getline(arq, linha);
+
+        cout << "Valor pago: R$" << linha << ",00" << endl;
         cout << "---------------------------------" << endl;
     }
 
