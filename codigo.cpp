@@ -39,7 +39,8 @@ void relatorioB();
 void relatorioC();
 void relatorioD(int, int);
 
-// TODO: Relatorios C e D, case 3 e 4, ordenação, corrigir bugs e limpar código (zerar variaveis, cin.ignore, do-while's, etc...)
+//TODO Agora: conta para os valores na locação, relatório D, devolução e ordenação
+//TODO Ao terminar: zerar variáveis, cin.ignore, testes de entrada, reduzir aonde for possível
 
 int main() {
     time_t now = time(0);
@@ -263,7 +264,6 @@ bool verificar_existente(string nome, string escolha) {
     }
 
     arq.close();
-    cout << "Cliente excluido!" << endl;
     return false;
 }
 
@@ -300,6 +300,7 @@ void excluir_cliente(string nome) {
     arq.close();
     remove("CLIENTE.TXT");
     rename("temp.txt", "CLIENTE.TXT");
+    cout << "Cliente excluido!" << endl;
 }
 
 int escolher_categoria() {
@@ -367,59 +368,66 @@ bool mostrar_categoria(int categoria) {
 }
 
 void locacao(string placa, string nome, int categoria) {
-    ofstream gravar("LOCACAO.TXT", ios::out | ios::app);
-    fstream arq("frota.txt", ios::in | ios::out | ios::ate); // Abre e vai pro final
+    ofstream gravar("locacao.txt", ios::out | ios::app);
+    fstream arq("frota.txt", ios::in | ios::out); // Abre e vai pro final
     ifstream arq2("cliente.txt", ios::in);
 
     string linha;
-    Veiculo carro;
-    int dias = 0, aux2, quantidade, diaL, mesL, diaE, mesE;
+    Locacao carro;
+    int dias = 0, aux2, quantidade;
 
-    while (!arq2.eof()) {
-        getline(arq2, linha); // Abriu cliente
+    while (getline(arq2, linha)) { // Abriu cliente
         if (linha == nome) {
-            getline(arq, linha);
-            gravar << linha << endl;
+            getline(arq2, linha);
+            gravar << linha << endl; // Grava o CPF do cliente achado
             break;
         }
     }
 
-    do {
+    while (getline(arq, linha)) {
         if (linha == placa) {
-            for (int i = 0; i < 5; i++)
-                getline(arq, linha);
-            arq << "L" << endl;
+            getline(arq, linha);
+            getline(arq, linha);
+            gravar << linha << endl; // Grava codigo
 
-            arq >> quantidade;
-            arq << quantidade++;
+            getline(arq, linha);
+            getline(arq, linha);
+            arq << "L" << endl; // Altera de D para L
+
+            getline(arq, linha);
+            quantidade = 0;
+            arq << quantidade++; // Aumenta a quantidade em 1
             break;
         }
-    } while (!getline(arq, linha));
+    }
 
     cout << "Informe o dia da locacao:";
-    cin >> diaL;
-    gravar << diaL << endl;
+    cin >> carro.dia;
     cout << "Informe o mes da locacao: ";
-    cin >> mesL;
-    gravar << mesL << endl;
+    cin >> carro.mes;
     cout << "Informe o dia da devolucao: ";
-    cin >> diaE;
-    gravar << diaE << endl;
+    cin >> carro.diaE;
     cout << "Informe o mes da devolucao: ";
-    cin >> mesE;
-    gravar << mesE << endl;
+    cin >> carro.mesE;
 
-    if (mesL == mesE)
-        dias = diaE - diaL;
-    else if (mesL < mesE) {
-        aux2 = mesE - mesL;
-        dias = (30 - diaL) + ((aux2 - 1) * 30) + diaE;
+    if (carro.mes == carro.mesE)
+        dias = carro.diaE - carro.dia;
+    else if (carro.mes < carro.mesE) {
+        aux2 = carro.mesE - carro.mes;
+        dias = (30 - carro.dia) + ((aux2 - 1) * 30) + carro.diaE;
     }
     // 15/07 - 23/10
     //(30 - 15) + ((3-1)*30) + 23; = 15 + 60 + 23 = 98 dias
-    // carro.valor = (10 * categoria) * dias;
-    //   carro.valorP = carro.valor;
-    // cout << "Valor a ser pago: R$" << carro.valor << ",00" << endl;
+    carro.valor = (10 * categoria) * dias;
+    carro.valorP = carro.valor;
+    cout << "Valor a ser pago: R$" << carro.valor << ",00" << endl;
+
+    gravar << carro.dia << endl;
+    gravar << carro.mes << endl;
+    gravar << carro.diaE << endl;
+    gravar << carro.mesE << endl;
+    gravar << carro.valor << endl;
+    gravar << carro.valorP << endl;
 
     gravar.close();
     arq.close();
@@ -475,6 +483,38 @@ void relatorioB() {
     arq.close();
 }
 
+void relatorioC() {
+    ifstream arq("locacao.txt");
+    string linha;
+
+    cout << "Mostrando veiculos locados.. " << endl;
+    cout << "---------------------------------" << endl;
+    while (getline(arq, linha)) {
+        cout << "CPF: " << linha << endl;
+        getline(arq, linha);
+
+        cout << "Codigo: " << linha << endl;
+        getline(arq, linha);
+
+        cout << "Data de locacao: " << linha;
+        getline(arq, linha);
+        cout << "/" << linha << endl;
+        getline(arq, linha);
+
+        cout << "Data de devolucao: " << linha;
+        getline(arq, linha);
+        cout << "/" << linha << endl;
+
+        cout << "Valor: " << linha << endl;
+        getline(arq, linha);
+
+        cout << "Valor pago: " << linha << endl;
+        cout << "---------------------------------" << endl;
+    }
+
+    arq.close();
+}
+
 void relatorioD(int dia, int mes) {
     ifstream arq("LOCACAO.DAD", ios::binary);
     Locacao carro;
@@ -500,31 +540,6 @@ void relatorioD(int dia, int mes) {
             cout << "---------------------------------" << endl;
         }
     }
-    arq.close();
-}
-
-void relatorioC() {
-    ifstream arq("LOCACAO.DAD", ios::binary);
-    Locacao carro;
-
-    arq.seekg(0, ios::end);
-    int n = arq.tellg() / sizeof(Locacao);
-    arq.seekg(0, ios::beg);
-
-    cout << "Mostrando veiculos... " << endl;
-    cout << "---------------------------------" << endl;
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Locacao));
-
-        cout << "Codigo: " << carro.codigo << endl;
-        cout << "CPF: " << carro.cpf << endl; //* Transformado para char
-        cout << "Valor: " << carro.valor << endl;
-        cout << "Valor pago: " << fixed << setprecision(2) << carro.valorP << endl;
-        cout << "Data de locacao: " << carro.dia << "/" << carro.mes << endl;
-        cout << "Data de devolucao: " << carro.diaE << "/" << carro.mesE << endl;
-        cout << "---------------------------------" << endl;
-    }
-
     arq.close();
 }
 
