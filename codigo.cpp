@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <string>
 using namespace std;
 
 typedef struct {
@@ -39,8 +40,8 @@ void relatorioB();
 void relatorioC();
 void relatorioD(int, int);
 
-// TODO Agora: conta para os valores na locação, relatório D, devolução e ordenação
-// TODO Ao terminar: zerar variáveis, cin.ignore, testes de entrada, reduzir aonde for possível
+// TODO Agora: Case4 (devolução + relatório D)
+// TODO Ao terminar: ordenação, zerar variáveis, cin.ignore, testes de entrada, reduzir aonde for possível
 
 int main() {
     time_t now = time(0);
@@ -124,17 +125,16 @@ int main() {
             }
             break;
 
-            /*case 4:
-                cout << "Digite o cpf do cliente que deseja fazer a devolucao: ";
-                cin.ignore();
-                getline(cin, aux);
-                existente = verificar_existente(aux);
-                if (existente == true) {
-                    devolucao(aux, dia, mes);
-                    cout << "Devolucao realizada!" << endl;
-                } else
-                    cout << "Cliente nao cadastrado!" << endl;
-                break;*/
+        case 4:
+            cout << "Digite o cpf do cliente que deseja fazer a devolucao: ";
+            cin.ignore();
+            getline(cin, aux);
+            existente = verificar_existente(aux, "cliente.txt");
+            if (existente == true)
+                devolucao(aux, dia, mes);
+            else
+                cout << "Cliente nao cadastrado!" << endl;
+            break;
 
         case 5:
             do {
@@ -546,27 +546,39 @@ void relatorioC() {
 }
 
 void relatorioD(int dia, int mes) {
-    ifstream arq("LOCACAO.DAD", ios::binary);
-    Locacao carro;
-
-    arq.seekg(0, ios::end);
-    int n = arq.tellg() / sizeof(Locacao);
-    arq.seekg(0, ios::beg);
+    ifstream arq("LOCACAO.txt", ios::in);
+    Locacao locado;
+    string linha, cpf, codigo, valor, valorP, dia2, mes2;
+    string diaE, mesE, strDia = to_string(dia), strMes = to_string(mes);
 
     cout << "Mostrando veiculos para serem devolvidos hoje..." << endl;
     cout << "Data de Hoje: " << dia << "/" << mes << endl;
     cout << "---------------------------------" << endl;
+    while (!arq.eof()) {
+        getline(arq, linha);
+        cpf = linha;
+        getline(arq, linha);
+        codigo = linha;
+        getline(arq, linha);
+        dia2 = linha;
+        getline(arq, linha);
+        mes2 = linha;
+        getline(arq, linha);
+        diaE = linha;
+        getline(arq, linha);
+        mesE = linha;
+        getline(arq, linha);
+        valor = linha;
+        getline(arq, linha);
+        valorP = linha;
 
-    for (int i = 0; i < n; i++) {
-        arq.read((char *)(&carro), sizeof(Locacao));
-
-        if (carro.diaE == dia and carro.mesE == mes) {
-            cout << "Codigo: " << carro.codigo << endl;
-            cout << "CPF: " << carro.cpf << endl;
-            cout << "Valor: " << carro.valor << endl;
-            cout << "Valor pago: " << carro.valorP << endl;
-            cout << "Data de locacao: " << carro.dia << "/" << carro.mes << endl;
-            cout << "Data de devolucao: " << carro.diaE << "/" << carro.mesE << endl;
+        if (diaE == strDia and mesE == strMes) {
+            cout << "Codigo: " << codigo << endl;
+            cout << "CPF: " << cpf << endl;
+            cout << "Valor: R$" << valor << ",00" << endl;
+            cout << "Valor pago: R$" << valorP << ",00" << endl;
+            cout << "Data de locacao: " << dia2 << "/" << mes2 << endl;
+            cout << "Data de devolucao: " << diaE << "/" << mesE << endl;
             cout << "---------------------------------" << endl;
         }
     }
@@ -574,56 +586,53 @@ void relatorioD(int dia, int mes) {
 }
 
 void devolucao(string cpf, int dia, int mes) {
-    fstream arq1("FROTA.DAD", ios::binary);
-    fstream arq2("LOCACAO.DAD", ios::binary);
-    Locacao carro2;
-    Veiculo carro1;
-    bool multa;
-    int aux, dias;
+    Locacao carro_loc;
+    Veiculo carro;
+    string linha, codigo, placa;
+    bool multa, achou = false;
+    int aux, dias, i = 0;
 
-    arq2.seekg(0, ios::end);
-    int n = arq2.tellg() / sizeof(Locacao);
-    arq2.seekg(0, ios::beg);
-
-    arq1.seekg(0, ios::end);
-    int n2 = arq1.tellg() / sizeof(Veiculo);
-    arq1.seekg(0, ios::beg);
-
-    for (int i = 0; i < n; i++) {
-        arq2.read((char *)(&carro2), sizeof(Locacao));
-
-        if (carro2.cpf == cpf) { // talvez nao funcione
-            for (int j = 0; j < n2; i++) {
-                arq1.read((char *)(&carro1), sizeof(Veiculo));
-                if (carro2.codigo == carro1.codigo) {
-                    carro1.situacao = 'D';
-                    arq1.seekp(-sizeof(Veiculo), ios::cur);
-                    arq1.write((char *)(&carro1), sizeof(Veiculo));
-                    break;
-                }
+    ifstream locacao("locacao.txt", ios::in);
+    ofstream new_locacao("new_locacao.txt", ios::out);
+    while (getline(locacao, linha)) {
+        if (linha == cpf) {
+            getline(locacao, linha);
+            codigo = linha;
+            for (i = 0; i < 6; i++) {
+                getline(locacao, linha);
             }
-            break;
+        } else
+            new_locacao << linha << endl;
+    }
+    locacao.close();
+    new_locacao.close();
+    remove("locacao.txt");
+    rename("new_locacao.txt", "locacao.txt");
+
+    i = 0;
+    ifstream frota("frota.txt", ios::in);
+    ofstream new_frota("new_frota.txt", ios::out);
+    while (getline(frota, linha)) {
+        if (linha == codigo)
+            achou = true;
+
+        if (achou)
+            i++;
+
+        if (i == 5)
+            new_frota << "D" << endl;
+
+        if (i == 6) {
+            int intLinha = stoi(linha);
+            new_frota << intLinha + 1 << endl;
         }
-        break;
+        if (i != 5 and i != 6)
+            new_frota << linha << endl;
     }
-    if (mes > carro2.mesE) {
-        aux = mes - carro2.mesE;
-        dias = (30 - carro2.diaE) + ((aux - 1) * 30) + dia;
-        // 15/07 - 23/10
-        //(30 - 15) + ((3-1)*30) + 23; = 15 + 60 + 23 = 98 dias
-        multa = true;
-    } else if (mes == carro2.mesE and dia > carro2.diaE) {
-        dias = dia - carro2.diaE;
-        multa = true;
-    } else { // dentro do prazo
-        carro2.valorP = carro2.valor;
-        cout << "Valor total a pagar: R$" << carro2.valorP << ",00" << endl;
-    }
-    if (multa == true) {
-        cout << "ATENCAO! Devolucao fora do prazo! " << endl;
-        carro2.valorP = carro2.valor * (1.20 + (0.01 * dias));
-        cout << "Valor total a pagar: R$" << carro2.valorP << ",00" << endl;
-    }
-    arq1.close();
-    arq2.close();
+
+    frota.close();
+    new_frota.close();
+    remove("frota.txt");
+    rename("new_frota.txt", "frota.txt");
+    cout << "Devolucao executada com sucesso!" << endl;
 }
