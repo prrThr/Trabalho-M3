@@ -265,7 +265,6 @@ void excluir_veiculo(string placa) {
                 temp << carro.situacao << endl;
                 temp << qntd << endl;
                 locado = true;
-                break;
             }
 
         } else
@@ -586,11 +585,10 @@ void relatorioD(int dia, int mes) {
 }
 
 void devolucao(string cpf, int dia, int mes) {
-    Locacao carro_loc;
-    Veiculo carro;
+    Locacao locado;
     string linha, codigo, placa;
     bool multa, achou = false;
-    int aux, dias, i = 0;
+    int aux, dias, i = 0, intLinha;
 
     ifstream locacao("locacao.txt", ios::in);
     ofstream new_locacao("new_locacao.txt", ios::out);
@@ -598,9 +596,28 @@ void devolucao(string cpf, int dia, int mes) {
         if (linha == cpf) {
             getline(locacao, linha);
             codigo = linha;
-            for (i = 0; i < 6; i++) {
-                getline(locacao, linha);
-            }
+
+            getline(locacao, linha);
+            intLinha = stoi(linha);
+            locado.dia = intLinha;
+
+            getline(locacao, linha);
+            intLinha = stoi(linha);
+            locado.mes = intLinha;
+
+            getline(locacao, linha);
+            intLinha = stoi(linha);
+            locado.diaE = intLinha;
+
+            getline(locacao, linha);
+            intLinha = stoi(linha);
+            locado.mesE = intLinha;
+
+            getline(locacao, linha);
+            intLinha = stoi(linha);
+            locado.valor = intLinha;
+
+            getline(locacao, linha);
         } else
             new_locacao << linha << endl;
     }
@@ -623,11 +640,30 @@ void devolucao(string cpf, int dia, int mes) {
             new_frota << "D" << endl;
 
         if (i == 6) {
-            int intLinha = stoi(linha);
+            intLinha = stoi(linha);
             new_frota << intLinha + 1 << endl;
         }
         if (i != 5 and i != 6)
             new_frota << linha << endl;
+    }
+
+    if (mes > locado.mesE) {
+        aux = mes - locado.mesE;
+        dias = (30 - locado.diaE) + ((aux - 1) * 30) + dia;
+        multa = true;
+    } else if (mes == locado.mesE and dia > locado.diaE) {
+        dias = dia - locado.diaE;
+        multa = true;
+    }
+    if (!multa) { // dentro do prazo
+
+        locado.valorP = locado.valor;
+        cout << "Valor total a pagar: R$" << locado.valorP << ",00" << endl;
+    }
+    if (multa) {
+        cout << "ATENCAO! Devolucao fora do prazo! " << endl;
+        locado.valorP = locado.valor * (1.20 + (0.01 * dias));
+        cout << "Valor total a pagar: R$" << locado.valorP << endl;
     }
 
     frota.close();
@@ -635,4 +671,5 @@ void devolucao(string cpf, int dia, int mes) {
     remove("frota.txt");
     rename("new_frota.txt", "frota.txt");
     cout << "Devolucao executada com sucesso!" << endl;
+    cout << "Valor pago: R$" << locado.valorP << ",00" << endl;
 }
