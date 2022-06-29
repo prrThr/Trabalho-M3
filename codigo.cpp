@@ -1,8 +1,11 @@
+#include <algorithm>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <list>
 #include <string>
+#include <vector>
 using namespace std;
 
 typedef struct {
@@ -22,12 +25,14 @@ typedef struct {
 
 int funcao_opcao(int, int, int);
 int veiculo_ou_cliente();
+bool verificar_existente(string, string);
+void ordenar();
 
 void inserir_veiculo(string);
 void excluir_veiculo(string);
 
-bool verificar_existente(string, string);
 void inserir_cliente(string);
+void inserir_ordenado_cliente(string);
 void excluir_cliente(string);
 
 int escolher_categoria();
@@ -40,14 +45,14 @@ void relatorioB();
 void relatorioC();
 void relatorioD(int, int);
 
-// TODO Agora: Case4 (devolução + relatório D)
-// TODO Ao terminar: ordenação, zerar variáveis, cin.ignore, testes de entrada, reduzir aonde for possível
+// Falta: ordenação, reduzir aonde for possível.
+// bugs: nao contamos locacoes que vao para o proximo ano.
 
 int main() {
     time_t now = time(0);
     tm *ltm = localtime(&now);
     int dia = ltm->tm_mday, mes = 1 + ltm->tm_mon, ano = 1900 + ltm->tm_year;
-    int opcao, opcao2, opcao_categoria;
+    int opcao, opcao2, opcao_categoria, qtde = 0;
     bool existente, existente_categoria = false;
     string nome_ou_placa, aux, escolha, placa;
 
@@ -58,22 +63,21 @@ int main() {
             system("cls");
             opcao2 = veiculo_ou_cliente();
             cin.ignore();
-
             if (opcao2 == 1) {
                 cout << "Digite a placa: ";
                 getline(cin, nome_ou_placa);
                 existente = verificar_existente(nome_ou_placa, "frota.txt");
-                if (!existente)
+                if (!existente) {
+                    qtde++;
                     inserir_veiculo(nome_ou_placa);
-                else
+                } else
                     cout << "Veiculo ja cadastrado!" << endl;
-
             } else {
                 cout << "Digite o nome do cliente que deseja inserir: ";
                 getline(cin, nome_ou_placa);
                 existente = verificar_existente(nome_ou_placa, "cliente.txt");
                 if (!existente)
-                    inserir_cliente(nome_ou_placa);
+                    inserir_ordenado_cliente(nome_ou_placa);
                 else
                     cout << "Cliente ja cadastrado!" << endl;
             }
@@ -83,7 +87,6 @@ int main() {
             system("cls");
             opcao2 = veiculo_ou_cliente();
             cin.ignore();
-
             if (opcao2 == 1) {
                 cout << "Digite a placa do veiculo que deseja excluir: ";
                 getline(cin, nome_ou_placa);
@@ -92,7 +95,6 @@ int main() {
                     excluir_veiculo(nome_ou_placa);
                 else
                     cout << "Veiculo inexistente!" << endl;
-
             } else {
                 cout << "Digite o nome do cliente que deseja excluir: ";
                 getline(cin, nome_ou_placa);
@@ -126,6 +128,10 @@ int main() {
             break;
 
         case 4:
+            if (qtde == 0) {
+                cout << "Nenhum veiculo cadastrado! Retornando..." << endl;
+                break;
+            }
             cout << "Digite o cpf do cliente que deseja fazer a devolucao: ";
             cin.ignore();
             getline(cin, aux);
@@ -166,16 +172,14 @@ int main() {
             cout << "Saindo..." << endl;
             break;
         }
-
     } while (opcao != 6);
-
     return 0;
 }
 
 int funcao_opcao(int dia, int mes, int ano) {
     int escolha;
     do {
-        cout << "Data:" << dia << "/" << mes << "/" << ano << endl << endl;
+        cout << "Data:" << dia << "/" << mes << "/" << ano << endl;
         cout << "Digite a opcao desejada: " << endl;
         cout << "1 - Incluir um veiculo ou cliente" << endl;
         cout << "2 - Excluir veiculo ou cliente" << endl;
@@ -205,7 +209,7 @@ void inserir_veiculo(string placa) {
     ofstream arq("FROTA.TXT", ios::app);
     string linha;
 
-    carro.placa = placa; // Talvez de para botar direto
+    carro.placa = placa;
     arq << carro.placa << endl;
 
     cout << "Informe o codigo do veiculo: ";
@@ -266,11 +270,9 @@ void excluir_veiculo(string placa) {
                 temp << qntd << endl;
                 locado = true;
             }
-
         } else
             temp << linha << endl;
     }
-
     temp.close();
     arq.close();
     remove("frota.txt");
@@ -289,7 +291,6 @@ bool verificar_existente(string nome, string escolha) {
             return true;
         }
     }
-
     arq.close();
     return false;
 }
@@ -310,6 +311,54 @@ void inserir_cliente(string nome) {
     gravar.close();
 }
 
+void inserir_ordenado_cliente(string nome) {
+    Cliente pessoa;
+    ifstream cliente("cliente.txt", ios::in);
+    ofstream new_cliente("new_cliente.txt", ios::out);
+    string linha, maior = {};
+    vector<Cliente> pessoaVector;
+    int i = 0;
+
+    pessoa.nome = nome;
+    cout << "Digite o cpf: ";
+    getline(cin, pessoa.cpf);
+    cout << "Digite o telefone: ";
+    getline(cin, pessoa.telefone);
+    pessoaVector.push_back(pessoa);
+
+    while (getline(cliente, linha)) {
+        pessoa.nome = linha;
+        getline(cliente, linha);
+        pessoa.cpf = linha;
+        getline(cliente, linha);
+        pessoa.telefone = linha;
+        pessoaVector.push_back(pessoa);
+    }
+
+    // -----------------------------------------------------------//
+    for (int i = 0; i < pessoaVector.size(); i++) {
+        for (int j = i; j < (pessoaVector.size()); j++) {
+            if (pessoaVector[i].cpf > pessoaVector[j].cpf) {
+                std::swap(pessoaVector[i], pessoaVector[j]);
+            }
+        }
+    }
+
+    for (int i = 0; i < pessoaVector.size(); i++) {
+        new_cliente << pessoaVector[i].nome << endl;
+        new_cliente << pessoaVector[i].cpf << endl;
+        new_cliente << pessoaVector[i].telefone << endl;
+    }
+
+    // -----------------------------------------------------------//
+
+    new_cliente.close();
+    cliente.close();
+    remove("cliente.txt");
+    rename("new_cliente.txt", "cliente.txt");
+    cout << "Cliente inserido com sucesso!" << endl;
+}
+
 void excluir_cliente(string nome) {
     string linha;
     ifstream arq("CLIENTE.TXT", ios::in);
@@ -322,7 +371,6 @@ void excluir_cliente(string nome) {
         } else
             temp << linha << endl;
     }
-
     temp.close();
     arq.close();
     remove("CLIENTE.TXT");
@@ -353,6 +401,10 @@ bool mostrar_categoria(int categoria) {
     cout << "Mostrando veiculos disponiveis por categoria: " << endl;
     cout << "---------------------------------" << endl;
 
+    if (!arq) {
+        cout << "Nao foi possivel abrir o arquivo." << endl;
+        return 0;
+    }
     while (!arq.eof()) {
         getline(arq, linha);
         placa = linha;
@@ -396,21 +448,19 @@ void locacao(string placa, string nome, int categoria) {
     ifstream cliente("cliente.txt", ios::in);
     ifstream frota;
     ofstream new_frota;
-
     string linha;
     Locacao carro;
     int dias, meses, i = 0;
     bool achou = false;
 
-    while (getline(cliente, linha)) { // Abriu cliente
+    while (getline(cliente, linha)) {
         if (linha == nome) {
             getline(cliente, linha);
-            gravar << linha << endl; // Grava o CPF do cliente achado
+            gravar << linha << endl;
             break;
         }
     }
     cliente.close();
-
     frota.open("frota.txt", ios::in);
     new_frota.open("new_frota.txt", ios::out);
     while (getline(frota, linha)) {
@@ -419,13 +469,12 @@ void locacao(string placa, string nome, int categoria) {
         if (achou)
             i++;
         if (achou and i == 2)
-            gravar << linha << endl; // Gravar o código
+            gravar << linha << endl;
         if (achou and i == 6)
             new_frota << "L" << endl;
         else
             new_frota << linha << endl;
     }
-
     cout << "Informe o dia da locacao:";
     cin >> carro.dia;
     cout << "Informe o mes da locacao: ";
@@ -434,25 +483,20 @@ void locacao(string placa, string nome, int categoria) {
     cin >> carro.diaE;
     cout << "Informe o mes da devolucao: ";
     cin >> carro.mesE;
-
     if (carro.mes == carro.mesE)
         dias = carro.diaE - carro.dia;
     else if (carro.mes < carro.mesE) {
         meses = carro.mesE - carro.mes;
         dias = (30 - carro.dia) + ((meses - 1) * 30) + carro.diaE;
     }
-    // Ex: 15/07 - 23/10
-    //(30 - 15) + ((3-1)*30) + 23; = 15 + 60 + 23 = 98 dias
-
     carro.valor = (10 * categoria) * dias;
     cout << "Valor a ser pago: R$" << carro.valor << ",00" << endl;
-
     gravar << carro.dia << endl;
     gravar << carro.mes << endl;
     gravar << carro.diaE << endl;
     gravar << carro.mesE << endl;
     gravar << carro.valor << endl;
-    gravar << 0 << endl; // Valor
+    gravar << 0 << endl;
 
     gravar.close();
     frota.close();
@@ -515,7 +559,7 @@ void relatorioC() {
     ifstream arq("locacao.txt");
     string linha;
 
-    cout << "Mostrando veiculos locados.. " << endl;
+    cout << "Mostrando veiculos locados... " << endl;
     cout << "---------------------------------" << endl;
     while (getline(arq, linha)) {
         cout << "CPF: " << linha << endl;
@@ -540,7 +584,6 @@ void relatorioC() {
         cout << "Valor pago: R$" << linha << ",00" << endl;
         cout << "---------------------------------" << endl;
     }
-
     arq.close();
 }
 
@@ -570,7 +613,6 @@ void relatorioD(int dia, int mes) {
         valor = linha;
         getline(arq, linha);
         valorP = linha;
-
         if (diaE == strDia and mesE == strMes) {
             cout << "Codigo: " << codigo << endl;
             cout << "CPF: " << cpf << endl;
@@ -625,7 +667,6 @@ void devolucao(string cpf, int dia, int mes) {
     new_locacao.close();
     remove("locacao.txt");
     rename("new_locacao.txt", "locacao.txt");
-
     i = 0;
     ifstream frota("frota.txt", ios::in);
     ofstream new_frota("new_frota.txt", ios::out);
@@ -646,7 +687,10 @@ void devolucao(string cpf, int dia, int mes) {
         if (i != 5 and i != 6)
             new_frota << linha << endl;
     }
-
+    if (achou == false) {
+        cout << "Nenhuma locacao realizada! Retornando..." << endl;
+        return;
+    }
     if (mes > locado.mesE) {
         aux = mes - locado.mesE;
         dias = (30 - locado.diaE) + ((aux - 1) * 30) + dia;
@@ -655,8 +699,7 @@ void devolucao(string cpf, int dia, int mes) {
         dias = dia - locado.diaE;
         multa = true;
     }
-    if (!multa) { // dentro do prazo
-
+    if (!multa) {
         locado.valorP = locado.valor;
         cout << "Valor total a pagar: R$" << locado.valorP << ",00" << endl;
     }
@@ -665,11 +708,9 @@ void devolucao(string cpf, int dia, int mes) {
         locado.valorP = locado.valor * (1.20 + (0.01 * dias));
         cout << "Valor total a pagar: R$" << locado.valorP << endl;
     }
-
     frota.close();
     new_frota.close();
     remove("frota.txt");
     rename("new_frota.txt", "frota.txt");
     cout << "Devolucao executada com sucesso!" << endl;
-    cout << "Valor pago: R$" << locado.valorP << ",00" << endl;
 }
