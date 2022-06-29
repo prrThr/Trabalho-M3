@@ -318,7 +318,7 @@ void inserir_ordenado_cliente(string nome) {
 
     // --------------------Ordenação-------------------------------//
     for (int i = 0; i < pessoaVector.size(); i++) {
-        for (int j = i; j < (pessoaVector.size()); j++) //? Talvez dê pra botar j = i+1 pra ignorar o primeiro
+        for (int j = i+1; j < (pessoaVector.size()); j++)
             if (pessoaVector[i].cpf > pessoaVector[j].cpf)
                 swap(pessoaVector[i], pessoaVector[j]);
     }
