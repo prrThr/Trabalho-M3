@@ -1,7 +1,8 @@
+#include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <iostream>
-#include <string> //? Talvez não esteja sendo usado
 #include <vector>
 using namespace std;
 
@@ -23,6 +24,7 @@ typedef struct {
 int funcao_opcao(int, int, int);
 int veiculo_ou_cliente();
 bool verificar_existente(string, string);
+void continuar();
 
 void inserir_veiculo(string);
 void excluir_veiculo(string);
@@ -46,7 +48,7 @@ int main() {
     time_t now = time(0);
     tm *ltm = localtime(&now);
     int dia = ltm->tm_mday, mes = 1 + ltm->tm_mon, ano = 1900 + ltm->tm_year;
-    int opcao, opcao2, opcao_categoria, qtde = 0;
+    int opcao, opcao2, opcao_categoria;
     bool existente, existente_categoria = false;
     string nome_ou_placa, aux, escolha, placa;
 
@@ -62,7 +64,6 @@ int main() {
                 getline(cin, nome_ou_placa);
                 existente = verificar_existente(nome_ou_placa, "frota.txt");
                 if (!existente) {
-                    qtde++;
                     inserir_veiculo(nome_ou_placa);
                 } else
                     cout << "Veiculo ja cadastrado!" << endl;
@@ -119,13 +120,10 @@ int main() {
                 } else
                     cout << "Nenhum veiculo disponivel nesta categoria!" << endl;
             }
+            cin.ignore();
             break;
 
         case 4:
-            if (qtde == 0) {
-                cout << "Nenhum veiculo cadastrado! Retornando..." << endl;
-                break;
-            }
             cout << "Digite o cpf do cliente que deseja fazer a devolucao: ";
             cin.ignore();
             getline(cin, aux);
@@ -160,12 +158,15 @@ int main() {
                 relatorioD(dia, mes);
                 break;
             }
+            cin.ignore();
             break;
 
         case 6:
             cout << "Saindo..." << endl;
             break;
         }
+        continuar();
+        system("cls");
     } while (opcao != 6);
     return 0;
 }
@@ -200,19 +201,22 @@ int veiculo_ou_cliente() {
     return escolher;
 }
 
-//? Talvez não precise das chaves
 bool verificar_existente(string nome_ou_placa, string escolha) {
     ifstream arq(escolha.c_str());
     string linha;
 
-    while (getline(arq, linha)) { //? Talvez não precise das chaves
+    while (getline(arq, linha))
         if (linha == nome_ou_placa) {
             arq.close();
             return true;
         }
-    }
     arq.close();
     return false;
+}
+
+void continuar() {
+    cout << "Pressione ENTER para continuar" << endl;
+    cin.get();
 }
 
 void inserir_veiculo(string placa) {
@@ -317,10 +321,9 @@ void inserir_ordenado_cliente(string nome) {
 
     // --------------------Ordenação-------------------------------//
     for (int i = 0; i < pessoaVector.size(); i++) {
-        for (int j = i; j < (pessoaVector.size()); j++) { //? Talvez dê pra botar j = i+1 pra ignorar o primeiro
+        for (int j = i; j < (pessoaVector.size()); j++) //? Talvez dê pra botar j = i+1 pra ignorar o primeiro
             if (pessoaVector[i].cpf > pessoaVector[j].cpf)
                 swap(pessoaVector[i], pessoaVector[j]);
-        }
     }
 
     for (int i = 0; i < pessoaVector.size(); i++) {
@@ -579,14 +582,18 @@ void relatorioA() {
     string linha, trocar;
 
     system("cls");
+    if (!arq) {
+        cout << "Nenhum veiculo registrado" << endl;
+        return;
+    }
     cout << "Mostrando veiculos..." << endl;
     cout << "---------------------------------" << endl;
     while (getline(arq, linha)) {
         cout << "Placa: " << linha << endl;
-        
+
         getline(arq, linha);
         cout << "Codigo: " << linha << endl;
-        
+
         getline(arq, linha);
         if (linha == "1")
             trocar = "Basica";
@@ -595,24 +602,26 @@ void relatorioA() {
         else
             trocar = "Super";
         cout << "Categoria: " << trocar << endl;
-        
+
         getline(arq, linha);
         cout << "Marca: " << linha << endl;
-       
+
         getline(arq, linha);
         cout << "Modelo: " << linha << endl;
-       
+
         getline(arq, linha);
         if (linha == "D")
             trocar = "Disponivel";
         else
             trocar = "Locado";
         cout << "Situacao: " << trocar << endl;
-        
+
         getline(arq, linha);
         cout << "Quantidade de locacoes: " << linha << endl;
         cout << "---------------------------------" << endl;
     }
+    if (arq.peek() == EOF)
+        cout << "Nenhum veiculo registrado" << endl;
     arq.close();
 }
 
@@ -621,6 +630,10 @@ void relatorioB() {
     string linha;
 
     system("cls");
+    if (!arq) {
+        cout << "Nenhum cliente registrado" << endl;
+        return;
+    }
     cout << "Mostrando Clientes..." << endl;
     cout << "---------------------------------" << endl;
     while (getline(arq, linha)) {
@@ -632,12 +645,20 @@ void relatorioB() {
         cout << "---------------------------------" << endl;
     }
     cout << endl;
+    if (arq.peek() == EOF)
+        cout << "Nenhum cliente registrado" << endl;
     arq.close();
 }
 
 void relatorioC() {
     ifstream arq("locacao.txt");
     string linha;
+
+    system("cls");
+    if (!arq) {
+        cout << "Nenhuma locacao no momento" << endl;
+        return;
+    }
 
     cout << "Mostrando veiculos locados... " << endl;
     cout << "---------------------------------" << endl;
@@ -664,6 +685,8 @@ void relatorioC() {
         cout << "Valor pago: R$" << linha << ",00" << endl;
         cout << "---------------------------------" << endl;
     }
+    if (arq.peek() == EOF)
+        cout << "Nenhuma locacao no momento" << endl;
     arq.close();
 }
 
@@ -671,6 +694,12 @@ void relatorioD(int dia, int mes) {
     ifstream arq("locacao.txt", ios::in);
     Locacao locado;
     string linha;
+
+    system("cls");
+    if (!arq) {
+        cout << "Nenhuma devolucao para hoje" << endl;
+        return;
+    }
 
     cout << "Mostrando veiculos para serem devolvidos hoje..." << endl;
     cout << "Data de Hoje: " << dia << "/" << mes << endl;
@@ -697,7 +726,8 @@ void relatorioD(int dia, int mes) {
         locado.valor = stof(linha);
 
         getline(arq, linha);
-        locado.valorP = stof(linha);;
+        locado.valorP = stof(linha);
+        ;
 
         if (locado.diaE == dia and locado.mesE == mes) {
             cout << "Codigo: " << locado.codigo << endl;
@@ -709,5 +739,7 @@ void relatorioD(int dia, int mes) {
             cout << "---------------------------------" << endl;
         }
     }
+    if (arq.peek() == EOF)
+        cout << "Nenhuma devolucao para hoje " << endl;
     arq.close();
 }
