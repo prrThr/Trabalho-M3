@@ -41,9 +41,6 @@ void relatorioB();
 void relatorioC();
 void relatorioD(int, int);
 
-// Falta: ordenação, reduzir aonde for possível.
-// bugs: nao contamos locacoes que vao para o proximo ano.
-
 int main() {
     time_t now = time(0);
     tm *ltm = localtime(&now);
